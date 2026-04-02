@@ -135,9 +135,9 @@ sub all {
 
   if ($columns) {
     if (ref($columns) eq 'ARRAY') {
-      $self->{columns} = $columns;
+      $self->{columns} = [_alias_dotted(@$columns)];
     } else {
-      $self->{columns} = [$columns];
+      $self->{columns} = [_alias_dotted($columns)];
     }
   }
 
@@ -158,9 +158,9 @@ sub one {
 
   if ($columns) {
     if (ref($columns) eq 'ARRAY') {
-      $clone->{columns} = $columns;
+      $clone->{columns} = [_alias_dotted(@$columns)];
     } else {
-      $clone->{columns} = [$columns];
+      $clone->{columns} = [_alias_dotted($columns)];
     }
   }
 
@@ -168,7 +168,6 @@ sub one {
 
   if ($columns && ref($columns) ne 'ARRAY') {
     return $one[0]->{$columns};
-    return undef;
   } else {
     return $one[0];
   }
@@ -316,6 +315,10 @@ sub dbh {
 }
 
 ## Internal
+
+sub _alias_dotted {
+  return map { !ref($_) && /\./ ? $sw->col($_)->as($_) : $_ } @_;
+}
 
 sub _build_select {
   my $self = shift;

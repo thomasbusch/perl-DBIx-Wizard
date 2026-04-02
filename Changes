@@ -1,2 +1,6 @@
+0.02  2026-04-02
+    - Auto-alias dotted columns in one() and all() so MySQL preserves
+      table-prefixed names (u.name => u.name AS `u.name`)
+
 0.01  2026-04-02
     - Initial release

@@ -1,7 +1,5 @@
 use ExtUtils::MakeMaker;
 
-my $version = MM->parse_version('lib/DBIx/Wizard.pm');
-
 WriteMakefile(
   NAME          => 'DBIx::Wizard',
   VERSION_FROM  => 'lib/DBIx/Wizard.pm',
@@ -11,7 +9,7 @@ WriteMakefile(
   MIN_PERL_VERSION => '5.10.0',
   PREREQ_PM     => {
     'DBI'          => 0,
-    'SQL::Wizard'  => '0.10',
+    'SQL::Wizard'  => '0.11',
     'Time::Moment'  => '0.46',
   },
   TEST_REQUIRES => {
@@ -20,12 +18,6 @@ WriteMakefile(
   },
   META_MERGE => {
     'meta-spec' => { version => 2 },
-    provides => {
-      'DBIx::Wizard' => {
-        file    => 'lib/DBIx/Wizard.pm',
-        version => $version,
-      },
-    },
     x_authority => 'cpan:TBUSCH',
     keywords => [qw(
       dbi database query builder executor zero-configuration orm
