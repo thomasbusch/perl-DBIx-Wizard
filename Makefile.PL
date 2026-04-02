@@ -47,3 +47,11 @@ WriteMakefile(
     },
   },
 );
+
+sub MY::postamble {
+  return <<'MAKE';
+readme: lib/DBIx/Wizard.pod
+	perl tools/pod2readme.pl lib/DBIx/Wizard.pod > README.md
+MAKE
+}
+
