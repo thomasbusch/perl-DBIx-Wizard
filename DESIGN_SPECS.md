@@ -387,6 +387,4 @@ DEBUG_DBIW_FILE=/tmp/sql.log    # log SQL to file
 
 2. **Cursor column flattening** — should `cursor('name')` return scalars from `next()` instead of hashrefs, matching `all('name')` behavior?
 
-3. **Transaction support** — should DBIx::Wizard provide `dbiw('db')->transaction(sub { ... })` or leave it to raw DBI?
-
-4. **ClickHouse support** — ClickHouse has specific workarounds (ALTER TABLE UPDATE, COUNT() fallbacks). Should these be dialect-aware or separate methods?
+3. **ClickHouse support** — ClickHouse has specific workarounds (ALTER TABLE UPDATE, COUNT() fallbacks). Should these be dialect-aware or separate methods?

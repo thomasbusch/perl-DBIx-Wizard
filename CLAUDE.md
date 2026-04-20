@@ -8,7 +8,7 @@ Code quality matters. This module aims to be the best database query layer avail
 
 ## What This Project Is
 
-DBIx::Wizard is a thin, fluent database query executor for Perl that sits between raw DBI and DBIx::Class. It uses SQL::Wizard (at `/home/thomas/work/perl-SQL-Wizard/`) as its SQL generation backend.
+DBIx::Wizard is a thin, fluent database query executor for Perl that sits between raw DBI and DBIx::Class. It uses SQL::Wizard as its SQL generation backend.
 
 ## Key Files
 
