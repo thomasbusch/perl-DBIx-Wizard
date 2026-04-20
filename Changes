@@ -1,3 +1,6 @@
+0.03  2026-04-08
+    - Add TRANSACTIONS section to POD (basic and nested/savepoint usage)
+
 0.02  2026-04-02
     - Auto-alias dotted columns in one() and all() so MySQL preserves
       table-prefixed names (u.name => u.name AS `u.name`)

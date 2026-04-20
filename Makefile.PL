@@ -10,7 +10,7 @@ WriteMakefile(
   PREREQ_PM     => {
     'DBI'          => 0,
     'SQL::Wizard'  => '0.11',
-    'Time::Moment'  => '0.46',
+    'Time::Moment'  => '0.44',
   },
   TEST_REQUIRES => {
     'Test::More'   => 0,
