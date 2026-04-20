@@ -380,6 +380,36 @@ The inflate class must implement `->new($datetime_string)`.
     # Disable inflation entirely
     dbiw('mydb:users')->inflate(0)->all;
 
+## Transactions
+
+    dbiw('mydb')->transaction(sub {
+        dbiw('mydb:users')->insert({ name => 'Alice', email => 'alice@test.com' });
+        dbiw('mydb:orders')->insert({ user_id => 42, total => 99.95 });
+    });
+
+Wraps the code block in a BEGIN / COMMIT pair. If the block dies, the
+transaction is rolled back and the exception is re-thrown.
+
+Note: `dbiw('mydb')` (without a table) returns a database wrapper with
+the `transaction` method.
+
+### Nested Transactions
+
+Nested calls to `transaction()` use savepoints. If the inner block dies,
+only the inner savepoint is rolled back — the outer transaction can continue:
+
+    dbiw('mydb')->transaction(sub {
+        dbiw('mydb:users')->insert({ name => 'Dave' });
+
+        eval {
+            dbiw('mydb')->transaction(sub {
+                dbiw('mydb:users')->insert({ name => 'Eve' });
+                die "inner failure";
+            });
+        };
+        # Dave is committed, Eve is rolled back
+    });
+
 ## Debugging
 
 SQL logging is controlled via environment variables:
