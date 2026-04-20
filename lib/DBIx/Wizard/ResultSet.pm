@@ -150,6 +150,13 @@ sub all {
   }
 }
 
+sub distinct {
+  my ($self, $columns) = @_;
+  croak "distinct() requires a column name or arrayref of columns" unless $columns;
+  $self->{distinct} = 1;
+  return $self->all($columns);
+}
+
 sub one {
   my ($self, $columns) = @_;
   my $clone = $self->_clone;
@@ -334,6 +341,7 @@ sub _build_select {
 
   return $sw->select(
     -from     => \@from,
+    ($self->{distinct}) ? (-distinct => 1)                 : (),
     ($self->{columns})  ? (-columns  => $self->{columns})  : (),
     ($self->{where})    ? (-where    => $self->{where})    : (),
     ($self->{group_by}) ? (-group_by => $self->{group_by}) : (),

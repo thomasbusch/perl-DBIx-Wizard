@@ -258,6 +258,18 @@ Executes SELECT and returns all matching rows as hashrefs. When given a
 single scalar column name (not an arrayref), returns a flat list of that
 column's values instead.
 
+=head2 distinct
+
+    my @depts = dbiw('mydb:users')->distinct('department');
+    my @pairs = dbiw('mydb:users')->distinct(['dept', 'city']);
+
+Returns distinct values. Mirrors C<all()>'s column argument: a scalar returns
+a flat list of values, an arrayref returns hashrefs. Emits C<SELECT DISTINCT>
+under the hood.
+
+A column argument is required — C<< ->distinct >> without columns would
+produce C<SELECT DISTINCT *>, which is almost never what you want.
+
 =head2 one
 
     my $row  = dbiw('mydb:users')->find({ id => 42 })->one;
@@ -282,20 +294,20 @@ for large result sets that should not be loaded entirely into memory.
 
 Returns the COUNT(*) of matching rows.
 
+=head2 exists
+
+    if (dbiw('mydb:users')->find({ email => $email })->exists) {
+        ...
+    }
+
+Returns true if the query matches at least one row, false otherwise.
+Equivalent to C<< count > 0 >>.
+
 =head2 sum
 
     my $total = dbiw('mydb:orders')->find({ user_id => 42 })->sum('amount');
 
 Returns the SUM of the given column.
-
-=head2 count_from_select
-
-    my $n = dbiw('mydb:users')
-                ->find({ status => 'active' })
-                ->count_from_select(['id']);
-
-Wraps the query in C<SELECT COUNT(*) FROM (subquery) AS subquery>. Useful
-when counting results of a query that uses GROUP BY or DISTINCT.
 
 =head1 RESULTSET — DATA MODIFICATION
 
@@ -460,15 +472,6 @@ decimal fixing applied. Returns C<undef> when no more rows are available.
     my $dbh = dbiw('mydb:users')->dbh;
 
 Returns the raw L<DBI> database handle for direct access.
-
-=head2 all_table_only
-
-    my @rows = dbiw('mydb:users')
-                   ->join('orders|o' => 'o.user_id = users.id')
-                   ->all_table_only;
-
-Like C<all()> but forces C<SELECT table.*>, returning only columns from the
-primary table (excluding joined table columns).
 
 =head1 INSPIRATION
 

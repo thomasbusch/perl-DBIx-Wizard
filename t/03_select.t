@@ -101,5 +101,25 @@ dbiw('testdb:users')->insert({ name => 'Charlie', email => 'charlie@example.com'
   ok !dbiw('testdb:users')->inflate(0)->find({ name => 'Nobody' })->exists, 'exists returns false';
 }
 
+# distinct with scalar returns flat list of unique values
+{
+  my @s = dbiw('testdb:users')->inflate(0)->sort('status')->distinct('status');
+  is_deeply \@s, ['active', 'inactive'], 'distinct(scalar) returns flat list';
+}
+
+# distinct with arrayref returns hashrefs
+{
+  my @rows = dbiw('testdb:users')->inflate(0)->sort('status')->distinct(['status']);
+  is scalar(@rows), 2, 'distinct(arrayref) returns 2 rows';
+  is $rows[0]->{status}, 'active', 'first status';
+  is $rows[1]->{status}, 'inactive', 'second status';
+}
+
+# distinct requires a column argument
+{
+  eval { dbiw('testdb:users')->distinct };
+  like $@, qr/distinct\(\) requires/, 'distinct without columns croaks';
+}
+
 cleanup_test_db();
 done_testing;
