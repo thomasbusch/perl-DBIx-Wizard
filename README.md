@@ -15,10 +15,10 @@
     # export DBIW_DECLARE_MYDB="dbi:mysql:dbname=myapp|user|password"
 
     # Query
-    my @active = dbiw('mydb:users')->find({ status => 'active' })->all;
-    my @names  = dbiw('mydb:users')->sort('name')->all('name');
-    my $alice  = dbiw('mydb:users')->find({ name => 'Alice' })->one;
-    my $count  = dbiw('mydb:users')->find({ status => 'active' })->count;
+    my @active = dbiw('mydb:users')->where({ status => 'active' })->all;
+    my @names  = dbiw('mydb:users')->order_by('name')->all('name');
+    my $alice  = dbiw('mydb:users')->where({ name => 'Alice' })->one;
+    my $count  = dbiw('mydb:users')->where({ status => 'active' })->count;
 
     # Insert
     my $id = dbiw('mydb:users')->insert({
@@ -27,22 +27,22 @@
     });
 
     # Update
-    dbiw('mydb:users')->find({ id => 42 })
+    dbiw('mydb:users')->where({ id => 42 })
                        ->update({ status => 'inactive' });
 
     # Update with expressions
-    dbiw('mydb:users')->find({ id => 42 })
+    dbiw('mydb:users')->where({ id => 42 })
                        ->update({ views => dbiw->col('views') + 1 });
 
     # Delete
-    dbiw('mydb:users')->find({ status => 'deleted' })->delete;
+    dbiw('mydb:users')->where({ status => 'deleted' })->delete;
 
     # Joins
     my @rows = dbiw('mydb:users')
         ->as('u')
         ->join('orders|o' => 'o.user_id = u.id')
-        ->find({ 'u.status' => 'active' })
-        ->sort('-o.created_at')
+        ->where({ 'u.status' => 'active' })
+        ->order_by('-o.created_at')
         ->limit(20)
         ->all;
 
@@ -60,7 +60,7 @@ Key properties:
 
 - **Zero schema definition.** Point it at a database and table, start
 querying. No result classes, no relationship declarations.
-- **Fluent chaining.** Build queries with `->find->sort->limit->all`.
+- **Fluent chaining.** Build queries with `->where->order_by->limit->all`.
 - **SQL::Wizard expressions everywhere.** Use `dbiw->col(...)`,
 `dbiw->func(...)`, `dbiw->now`, and arithmetic in any position.
 - **Plain hashrefs.** Rows are returned as plain Perl hashrefs, not
@@ -86,8 +86,8 @@ When called with a `'db:table'` string, returns a
 [DBIx::Wizard::ResultSet](https://metacpan.org/pod/DBIx%3A%3AWizard%3A%3AResultSet) object tied to that database and table.
 
 When called without arguments, returns a shared [SQL::Wizard](https://metacpan.org/pod/SQL%3A%3AWizard) instance
-for building expressions. These expressions can be used in `find()`,
-`update()`, `sort()`, `having()`, and column lists.
+for building expressions. These expressions can be used in `where()`,
+`update()`, `order_by()`, `having()`, and column lists.
 
 ## Database Registration
 
@@ -131,11 +131,11 @@ All builder methods modify the ResultSet and return `$self` for chaining.
 
 Sets the table alias. The alias is used in the SQL FROM clause.
 
-### find
+### Where
 
-    ->find({ status => 'active' })
-    ->find({ age => { '>' => 18 }, status => 'active' })
-    ->find({ name => { -in => ['Alice', 'Bob'] } })
+    ->where({ status => 'active' })
+    ->where({ age => { '>' => 18 }, status => 'active' })
+    ->where({ name => { -in => ['Alice', 'Bob'] } })
 
 Sets or extends the WHERE clause. When called with a hashref, merges with
 any existing conditions (AND). When called with an arrayref, replaces the
@@ -181,12 +181,12 @@ Adds a FULL OUTER JOIN.
 
 Adds a CROSS JOIN (no ON condition).
 
-### Sort
+### order\_by
 
-    ->sort('name')                           # ORDER BY name
-    ->sort('-created_at')                    # ORDER BY created_at DESC
-    ->sort('-created_at', 'name')            # ORDER BY created_at DESC, name
-    ->sort(dbiw->col('score')->desc)         # ORDER BY score DESC
+    ->order_by('name')                           # ORDER BY name
+    ->order_by('-created_at')                    # ORDER BY created_at DESC
+    ->order_by('-created_at', 'name')            # ORDER BY created_at DESC, name
+    ->order_by(dbiw->col('score')->desc)         # ORDER BY score DESC
 
 Sets the ORDER BY clause. A leading `-` on a column name is shorthand for
 DESC. Accepts expression objects.
@@ -202,7 +202,7 @@ Sets the GROUP BY clause.
 
     ->having({ dbiw->raw('COUNT(*)') => { '>' => 5 } })
 
-Sets the HAVING clause. Same syntax as `find()`.
+Sets the HAVING clause. Same syntax as `where()`.
 
 ### limit
 
@@ -243,10 +243,22 @@ Executes SELECT and returns all matching rows as hashrefs. When given a
 single scalar column name (not an arrayref), returns a flat list of that
 column's values instead.
 
+### Distinct
+
+    my @depts = dbiw('mydb:users')->distinct('department');
+    my @pairs = dbiw('mydb:users')->distinct(['dept', 'city']);
+
+Returns distinct values. Mirrors `all()`'s column argument: a scalar returns
+a flat list of values, an arrayref returns hashrefs. Emits `SELECT DISTINCT`
+under the hood.
+
+A column argument is required — `->distinct` without columns would
+produce `SELECT DISTINCT *`, which is almost never what you want.
+
 ### One
 
-    my $row  = dbiw('mydb:users')->find({ id => 42 })->one;
-    my $name = dbiw('mydb:users')->find({ id => 42 })->one('name');
+    my $row  = dbiw('mydb:users')->where({ id => 42 })->one;
+    my $name = dbiw('mydb:users')->where({ id => 42 })->one('name');
 
 Like `all()` but with LIMIT 1. Returns a single hashref, or a single
 scalar value when given a column name.
@@ -263,24 +275,24 @@ for large result sets that should not be loaded entirely into memory.
 
 ### count
 
-    my $n = dbiw('mydb:users')->find({ status => 'active' })->count;
+    my $n = dbiw('mydb:users')->where({ status => 'active' })->count;
 
 Returns the COUNT(\*) of matching rows.
 
+### exists
+
+    if (dbiw('mydb:users')->where({ email => $email })->exists) {
+        ...
+    }
+
+Returns true if the query matches at least one row, false otherwise.
+Equivalent to `count > 0`.
+
 ### Sum
 
-    my $total = dbiw('mydb:orders')->find({ user_id => 42 })->sum('amount');
+    my $total = dbiw('mydb:orders')->where({ user_id => 42 })->sum('amount');
 
 Returns the SUM of the given column.
-
-### count\_from\_select
-
-    my $n = dbiw('mydb:users')
-                ->find({ status => 'active' })
-                ->count_from_select(['id']);
-
-Wraps the query in `SELECT COUNT(*) FROM (subquery) AS subquery`. Useful
-when counting results of a query that uses GROUP BY or DISTINCT.
 
 ## Resultset — Data Modification
 
@@ -303,18 +315,18 @@ used as values:
 ### update
 
     my $rows = dbiw('mydb:users')
-                   ->find({ status => 'inactive' })
+                   ->where({ status => 'inactive' })
                    ->update({ status => 'deleted' });
 
 Updates all rows matching the current WHERE clause. Returns the number of
 affected rows. Expression objects work in the SET values:
 
-    dbiw('mydb:counters')->find({ key => 'hits' })
+    dbiw('mydb:counters')->where({ key => 'hits' })
                           ->update({ value => dbiw->col('value') + 1 });
 
 ### delete
 
-    dbiw('mydb:users')->find({ status => 'deleted' })->delete;
+    dbiw('mydb:users')->where({ status => 'deleted' })->delete;
 
 Deletes all rows matching the current WHERE clause.
 
@@ -343,7 +355,7 @@ This provides access to the full expression API:
     dbiw->case(...)
     dbiw->col('price') * dbiw->col('qty')  # arithmetic
 
-These expression objects can be used in `find()`, `sort()`, `having()`,
+These expression objects can be used in `where()`, `order_by()`, `having()`,
 `all()` column lists, `insert()` values, and `update()` SET values.
 
 See [SQL::Wizard](https://metacpan.org/pod/SQL%3A%3AWizard) for the complete expression API.
@@ -424,7 +436,7 @@ parameters.
 
 [DBIx::Wizard::Cursor](https://metacpan.org/pod/DBIx%3A%3AWizard%3A%3ACursor) provides lazy row-by-row iteration:
 
-    my $cursor = dbiw('mydb:users')->sort('name')->cursor;
+    my $cursor = dbiw('mydb:users')->order_by('name')->cursor;
     while (my $row = $cursor->next) {
         print $row->{name}, "\n";
     }
@@ -439,15 +451,6 @@ decimal fixing applied. Returns `undef` when no more rows are available.
     my $dbh = dbiw('mydb:users')->dbh;
 
 Returns the raw [DBI](https://metacpan.org/pod/DBI) database handle for direct access.
-
-### all\_table\_only
-
-    my @rows = dbiw('mydb:users')
-                   ->join('orders|o' => 'o.user_id = users.id')
-                   ->all_table_only;
-
-Like `all()` but forces `SELECT table.*`, returning only columns from the
-primary table (excluding joined table columns).
 
 ## Inspiration
 

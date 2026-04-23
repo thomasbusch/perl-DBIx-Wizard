@@ -17,7 +17,7 @@ Perl has two extremes for database access and nothing good in between:
 There's nothing in between that lets you write:
 
 ```perl
-my @users = dbiw('mydb:users')->find({ status => 'active' })->all;
+my @users = dbiw('mydb:users')->where({ status => 'active' })->all;
 ```
 
 without defining a schema, without 50 lines of setup, and without concatenating SQL strings. Ruby has ActiveRecord and Sequel. Python has SQLAlchemy. JavaScript has Knex. Perl has a gap.
@@ -39,12 +39,12 @@ without defining a schema, without 50 lines of setup, and without concatenating 
 The primary design goal is developer speed. Getting data from a database should be as concise as possible. The `dbiw('db:table')` factory and method chaining should make simple queries trivially short:
 
 ```perl
-my @names = dbiw('mydb:users')->find({ status => 'active' })->all('name');
+my @names = dbiw('mydb:users')->where({ status => 'active' })->all('name');
 ```
 
 ### 2. SQL::Wizard expressions everywhere
 
-DBIx::Wizard accepts SQL::Wizard expression objects anywhere — in columns, in find() conditions, in sort(), in having(). The `dbiw` function doubles as a SQL::Wizard instance:
+DBIx::Wizard accepts SQL::Wizard expression objects anywhere — in columns, in where() conditions, in order_by(), in having(). The `dbiw` function doubles as a SQL::Wizard instance:
 
 ```perl
 # dbiw without args returns a SQL::Wizard instance for expressions
@@ -60,7 +60,7 @@ Unlike SQL::Wizard's expression tree (which is immutable), DBIx::Wizard ResultSe
 
 ```perl
 # This is one query being built, not a reusable base
-dbiw('mydb:users')->find({ active => 1 })->sort('-created_at')->limit(10)->all;
+dbiw('mydb:users')->where({ active => 1 })->order_by('-created_at')->limit(10)->all;
 ```
 
 ### 4. Convention over configuration
@@ -76,7 +76,7 @@ dbiw('mydb:users')->find({ active => 1 })->sort('-created_at')->limit(10)->all;
 DBIx::Wizard should be a thin execution layer. It should NOT reimplement SQL generation. The flow is:
 
 ```
-dbiw('db:table')->find(...)->sort(...)->all(...)
+dbiw('db:table')->where(...)->order_by(...)->all(...)
       ↓
   Build SQL::Wizard query from accumulated state
       ↓
@@ -163,9 +163,9 @@ All builder methods return `$self` for chaining.
 ```perl
 dbiw('mydb:users')
     ->as('u')                                    # table alias
-    ->find({ status => 'active' })               # WHERE (hash merges, array replaces)
+    ->where({ status => 'active' })               # WHERE (hash merges, array replaces)
     ->join('orders|o' => 'o.user_id = u.id')     # JOIN
-    ->sort('-created_at', 'name')                 # ORDER BY (- prefix = DESC)
+    ->order_by('-created_at', 'name')                 # ORDER BY (- prefix = DESC)
     ->group_by('department')                      # GROUP BY
     ->having({ dbiw->func('COUNT', '*') => { '>' => 5 } })  # HAVING
     ->limit(20)                                  # LIMIT
@@ -182,14 +182,14 @@ dbiw('mydb:users')->as('u')
 # internally: -from => 'users|u'
 ```
 
-#### find(condition)
+#### where(condition)
 
 Sets or extends the WHERE clause. Hashref merges with existing conditions. Arrayref replaces. Accepts SQL::Wizard expression objects:
 
 ```perl
-->find({ status => 'active', age => { '>' => 18 } })
-->find({ dbiw->func('LENGTH', 'name') => { '>' => 3 } })
-->find([dbiw->between('age', 18, 65)])
+->where({ status => 'active', age => { '>' => 18 } })
+->where({ dbiw->func('LENGTH', 'name') => { '>' => 3 } })
+->where([dbiw->between('age', 18, 65)])
 ```
 
 #### join(table, on)
@@ -201,13 +201,13 @@ Adds a JOIN. Accepts same syntax as SQL::Wizard's `$q->join()`:
 ->left_join('payments|p' => 'p.order_id = o.id')      # LEFT JOIN
 ```
 
-#### sort(columns)
+#### order_by(columns)
 
 Sets ORDER BY. Accepts SQL::Wizard's `-column` shorthand for DESC:
 
 ```perl
-->sort('-created_at', 'name')     # ORDER BY created_at DESC, name
-->sort(dbiw->col('score')->desc)  # ORDER BY score DESC
+->order_by('-created_at', 'name')     # ORDER BY created_at DESC, name
+->order_by(dbiw->col('score')->desc)  # ORDER BY score DESC
 ```
 
 #### group_by(columns)
@@ -247,8 +247,8 @@ my @names = dbiw('mydb:users')->all('name');             # single column → fla
 Like `all()` but LIMIT 1, returns single hashref or scalar:
 
 ```perl
-my $user = dbiw('mydb:users')->find({ id => 42 })->one;
-my $name = dbiw('mydb:users')->find({ id => 42 })->one('name');
+my $user = dbiw('mydb:users')->where({ id => 42 })->one;
+my $name = dbiw('mydb:users')->where({ id => 42 })->one('name');
 ```
 
 #### cursor(columns?)
@@ -267,7 +267,7 @@ while (my $row = $cursor->next) {
 Returns COUNT(*):
 
 ```perl
-my $n = dbiw('mydb:users')->find({ status => 'active' })->count;
+my $n = dbiw('mydb:users')->where({ status => 'active' })->count;
 ```
 
 #### sum(column)
@@ -275,7 +275,7 @@ my $n = dbiw('mydb:users')->find({ status => 'active' })->count;
 Returns SUM(column):
 
 ```perl
-my $total = dbiw('mydb:orders')->find({ user_id => 42 })->sum('amount');
+my $total = dbiw('mydb:orders')->where({ user_id => 42 })->sum('amount');
 ```
 
 ---
@@ -299,11 +299,11 @@ my $id = dbiw('mydb:users')->insert({
 Updates rows matching the current WHERE clause:
 
 ```perl
-dbiw('mydb:users')->find({ status => 'inactive' })
+dbiw('mydb:users')->where({ status => 'inactive' })
                    ->update({ status => 'deleted' });
 
 # With SQL::Wizard expressions
-dbiw('mydb:users')->find({ id => 42 })
+dbiw('mydb:users')->where({ id => 42 })
                    ->update({ views => dbiw->col('views') + 1 });
 ```
 
@@ -312,7 +312,7 @@ dbiw('mydb:users')->find({ id => 42 })
 Deletes rows matching the current WHERE clause:
 
 ```perl
-dbiw('mydb:users')->find({ status => 'deleted' })->delete;
+dbiw('mydb:users')->where({ status => 'deleted' })->delete;
 ```
 
 #### truncate()
@@ -344,7 +344,7 @@ dbiw->case(...)
 dbiw->col('price') * dbiw->col('qty')  # arithmetic
 ```
 
-These return SQL::Wizard expression objects that can be used in find(), having(), sort(), all(), insert(), and update().
+These return SQL::Wizard expression objects that can be used in where(), having(), order_by(), all(), insert(), and update().
 
 ---
 
@@ -354,7 +354,7 @@ These return SQL::Wizard expression objects that can be used in find(), having()
 DBIx::Wizard              — exports dbiw(), creates ResultSet or SQL::Wizard
 DBIx::Wizard::DB          — database connection management (declare, dbh, cached handles)
 DBIx::Wizard::DB::Table   — table metadata (column names, types, auto PK, time/decimal cols)
-DBIx::Wizard::ResultSet   — query builder + executor (find, sort, all, insert, update, etc.)
+DBIx::Wizard::ResultSet   — query builder + executor (where, order_by, all, insert, update, etc.)
 DBIx::Wizard::Cursor      — lazy row iterator
 ```
 
